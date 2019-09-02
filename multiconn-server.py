@@ -17,7 +17,7 @@ def read(conn, mask):
     data = conn.recv(1000)  # Should be ready
     if data:
         print('echoing', repr(data), 'to', conn) #repr traduce de bytes
-        conn.send(data)  # Hope it won't block
+        #conn.send(data)  # Hope it won't block
     else:
         print('closing', conn)
         sel.unregister(conn)
@@ -35,4 +35,3 @@ with socket.socket() as sock:
         for key, mask in events:
             callback = key.data
             callback(key.fileobj, mask)
-        
