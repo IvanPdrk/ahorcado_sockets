@@ -19,8 +19,9 @@ hard = ['constantinopolitanos', 'carboximetilcelulosa', 'contrarevolucionaria',
            'descongestionamiento', 'electroluminiscentes', 'electronegatividades',
            'hiperlipoproteinemia', 'microemprendimientos', 'semipresidencialista',
            'superplastificadores']
-
-
+i=1
+j=1
+cola=[]
 word = ''
 tries = 0
 index = ''
@@ -44,16 +45,26 @@ def difficult(conn):
 
 
 def release(barrier):
+    global cola,j
     logging.debug('Waitting Barrier')
+    actual = threading.currentThread().getName()
+    cola.append(actual)
+    your_turn = cola.pop(0)
+    your_turn=str(your_turn)
     current=barrier.wait()
+    while True:
+        if your_turn != str(j):
+            pass
+        else:
+            j+=1
+            break
     logging.debug('Barrier release')
 
 
 def ahorcado(conn,word,barrier,lock):
     global index,indexes,tries,hidden_word,tablero
     release(barrier)
-    time.sleep(0.5)
-    #creo que aqui va la cola para los turnos
+
     while True:
         with lock:
             worst = 0
@@ -91,28 +102,29 @@ def ahorcado(conn,word,barrier,lock):
                 time.sleep(0.01)
                 #conn.sendall(response)
                 msg_all(response)
-                return False
+                break
             if tries == 6:
                 response = bytes("L", 'ascii')
                 time.sleep(0.01)
                 #conn.sendall(response)
                 msg_all(response)
-                return False
+                break
             hidden_word = ''  # reset to clean string
             index = ''  # Reset to clean index comodin
         logging.debug('candado liberado')
 
 def servirPorSiempre(socketTcp, listaconexiones, barrier, lock):
-    global num_players
+    global num_players,i
     try:
         while True:
             client_conn, client_addr = socketTcp.accept()   #Conexion done
             print("Conectado a", client_addr)
             listaconexiones.append(client_conn)
-            thread_read = threading.Thread(target=recibir_datos, args=[client_conn, client_addr, lock, barrier])
+            thread_read = threading.Thread(name=str(i) ,target=recibir_datos, args=[client_conn, client_addr, lock, barrier])
             thread_read.start()
             #thread_read.join()
             gestion_conexiones(listaConexiones)
+            i+=1
     except Exception as e:
         print(e)
 

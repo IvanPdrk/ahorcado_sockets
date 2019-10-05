@@ -9,7 +9,7 @@ buffer_size = 1024
 def conexion(): #Funcion que recibe Ip y Port del usuario
     #addr=input('Enter ip address: ')
     #port=input('Enter port: ')
-    addr='10.100.74.228'
+    addr='127.0.0.1'
     port=1234
     return addr,port
 
