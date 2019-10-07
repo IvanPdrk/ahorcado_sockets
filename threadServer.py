@@ -48,14 +48,12 @@ def release(barrier):
     global cola,j
     logging.debug('Waitting Barrier')
     actual = threading.currentThread().getName()
-    cola.append(actual)
-    your_turn = cola.pop(0)
-    your_turn=str(your_turn)
     current=barrier.wait()
     while True:
-        if your_turn != str(j):
+        if actual != str(j):
             pass
         else:
+            time.sleep(0.2)
             j+=1
             break
     logging.debug('Barrier release')
@@ -64,7 +62,7 @@ def release(barrier):
 def ahorcado(conn,word,barrier,lock):
     global index,indexes,tries,hidden_word,tablero
     release(barrier)
-
+    time.sleep(1)
     while True:
         with lock:
             worst = 0
@@ -73,6 +71,7 @@ def ahorcado(conn,word,barrier,lock):
             logging.debug('Usuario ingresando letra...')
             data = conn.recv(1024)  # Recive new letter
             new_letter = data.decode(encoding="utf-8")  # New letter decode
+            print(new_letter)
             for letter in word:
                 if letter == new_letter:
                     index += new_letter  # Index if is in hidden word
@@ -93,20 +92,19 @@ def ahorcado(conn,word,barrier,lock):
                     worst += 1
             tablero = hidden_word
             table = str.encode(hidden_word)  # encode hidden_word
-            conn.sendall(table)  # Send table
+            data = b'table'
+            msg_all(data)
+            time.sleep(0.2)
+            msg_all(table)  # Send table
             print(hidden_word)  # There is the current hidden_word
-            data = conn.recv(1024)  # tablero confirmado
-            print(worst)
             if worst == 0:  # YOU WIN
                 response = bytes("W", 'ascii')
                 time.sleep(0.01)
-                #conn.sendall(response)
                 msg_all(response)
                 break
             if tries == 6:
                 response = bytes("L", 'ascii')
                 time.sleep(0.01)
-                #conn.sendall(response)
                 msg_all(response)
                 break
             hidden_word = ''  # reset to clean string
@@ -122,7 +120,6 @@ def servirPorSiempre(socketTcp, listaconexiones, barrier, lock):
             listaconexiones.append(client_conn)
             thread_read = threading.Thread(name=str(i) ,target=recibir_datos, args=[client_conn, client_addr, lock, barrier])
             thread_read.start()
-            #thread_read.join()
             gestion_conexiones(listaConexiones)
             i+=1
     except Exception as e:
@@ -148,10 +145,6 @@ def recibir_datos(conn, addr, barrier, lock):
                 data=b'P2'
                 conn.sendall(data) #Send P2
                 data=conn.recv(1024) #P2 confirmed
-                """table=str.encode(tablero)
-                time.sleep(0.1)
-                msg_all(table) #Send table
-                time.sleep(0.1)"""
                 ahorcado(conn,word,barrier,lock) #Call ahorcado
             else:
                 dif = difficult(conn)   #Call Function to messages, define difficult
@@ -168,7 +161,6 @@ def recibir_datos(conn, addr, barrier, lock):
             if not data:
                 print("Fin")
                 break
-            #conn.sendall(response) #Send response
     except Exception as e:
         print(e)
     finally:

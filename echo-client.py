@@ -2,6 +2,7 @@
 import socket
 import time
 import threading
+import os
 
 buffer_size = 1024
 
@@ -15,7 +16,7 @@ def conexion(): #Funcion que recibe Ip y Port del usuario
 
 
 def difficult(TCPClientSocket,data):#Funcion en sincronia con welcome from server
-    difficult = input("dif"+data)
+    difficult = input(data)
     difficult = difficult.upper()
     data = str.encode(difficult)
     TCPClientSocket.sendall(data)  # Envia dificultad
@@ -25,33 +26,36 @@ def difficult(TCPClientSocket,data):#Funcion en sincronia con welcome from serve
 def send_recive_data(TCPClientSocket):
     while True: #COMUNICACION JUEGO
         data = TCPClientSocket.recv(buffer_size)  # recive msg from server correct or incorrect
-        data = data.decode(encoding="utf-8")      # o bandera de perdedor o ganador
+        data = data.decode(encoding="utf-8")      # signal of loser or winner or table
         if data == 'W':                           #o Peticion de otra letra
             print('YOU WIN')
-            return False
+            break
         elif data == 'L':
             print('YOU LOSE')
-            return False
+            break
+        elif data=='table':
+            data = TCPClientSocket.recv(buffer_size)
+            data = data.decode(encoding="utf-8")
+            print(".::"+data+"::.")
+
         else:
             letra=input(data)
             letra=letra.lower()
             letra= str.encode(letra)
             TCPClientSocket.sendall(letra)          #Send new_letter
-
+            os.system("clear")
             data=TCPClientSocket.recv(buffer_size)  #Recive answer
             data= data.decode(encoding="utf-8")
             print('respuesta: '+ data)
-
             data=b'respuesta confirmada'            #Answer confirmed
             TCPClientSocket.sendall(data)
-
+            """
             data=TCPClientSocket.recv(buffer_size) #recive table
             data = data.decode(encoding="utf-8")
             print(".::"+data+"::.")
-
             data=b'tablero confirmado'            #Tablero confirmado
             TCPClientSocket.sendall(data)
-
+            """
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCPClientSocket:
     addr,port=conexion()
