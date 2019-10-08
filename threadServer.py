@@ -8,7 +8,7 @@ import time
 import logging
 
 logging.basicConfig(level=logging.DEBUG,
-                    format='(%(threadName)-10s) %(message)s',
+                    format='(%(threadName)-2s) %(message)s',
                     )
 
 
@@ -28,6 +28,7 @@ index = ''
 indexes = ''
 hidden_word = ''
 tablero=''
+condition=threading.Condition()
 
 def msg_all(mensaje):
     for c in listaConexiones:
@@ -49,67 +50,75 @@ def release(barrier):
     logging.debug('Waitting Barrier')
     actual = threading.currentThread().getName()
     current=barrier.wait()
-    while True:
-        if actual != str(j):
-            pass
-        else:
-            time.sleep(0.2)
-            j+=1
-            break
     logging.debug('Barrier release')
 
 
+def define_turn(current):
+    global j
+    if current == str(j):
+        if j==num_players:
+            j=0
+        return True
+    else:
+        return False
+
+
 def ahorcado(conn,word,barrier,lock):
-    global index,indexes,tries,hidden_word,tablero
+    global index,indexes,tries,hidden_word,tablero,j,condition
     release(barrier)
-    time.sleep(1)
     while True:
-        with lock:
-            worst = 0
-            data = b'\nIngresa letra\n'
-            conn.sendall(data)
-            logging.debug('Usuario ingresando letra...')
-            data = conn.recv(1024)  # Recive new letter
-            new_letter = data.decode(encoding="utf-8")  # New letter decode
-            print(new_letter)
-            for letter in word:
-                if letter == new_letter:
-                    index += new_letter  # Index if is in hidden word
-                    indexes += new_letter  # Index in string of tries
-            if not index:  # Isnt the new letter
-                tries += 1
-                response = bytes("worst :(\n", 'ascii')  # Send answer
-                conn.sendall(response)
-            else:
-                response = bytes("great (:\n", 'ascii')  # send answer
-                conn.sendall(response)
-            data = conn.recv(1024)  # respuesta confirmada
-            for letter in word:
-                if letter in indexes:
-                    hidden_word += letter + ' '
+        with condition:
+            actual = threading.currentThread().getName()
+            your_turn = define_turn(actual)
+            if your_turn is True:
+                worst = 0
+                data = b'\nIngresa letra\n'
+                conn.sendall(data)
+                logging.debug('Usuario ingresando letra...')
+                data = conn.recv(1024)  # Recive new letter
+                new_letter = data.decode(encoding="utf-8")  # New letter decode
+                for letter in word:
+                    if letter == new_letter:
+                        index += new_letter  # Index if is in hidden word
+                        indexes += new_letter  # Index in string of tries
+                if not index:  # Isnt the new letter
+                    tries += 1
+                    response = bytes("worst :(\n", 'ascii')  # Send answer
+                    conn.sendall(response)
                 else:
-                    hidden_word += '_ '
-                    worst += 1
-            tablero = hidden_word
-            table = str.encode(hidden_word)  # encode hidden_word
-            data = b'table'
-            msg_all(data)
-            time.sleep(0.2)
-            msg_all(table)  # Send table
-            print(hidden_word)  # There is the current hidden_word
-            if worst == 0:  # YOU WIN
-                response = bytes("W", 'ascii')
-                time.sleep(0.01)
-                msg_all(response)
-                break
-            if tries == 6:
-                response = bytes("L", 'ascii')
-                time.sleep(0.01)
-                msg_all(response)
-                break
-            hidden_word = ''  # reset to clean string
-            index = ''  # Reset to clean index comodin
-        logging.debug('candado liberado')
+                    response = bytes("great (:\n", 'ascii')  # send answer
+                    conn.sendall(response)
+                data = conn.recv(1024)  # respuesta confirmada
+                for letter in word:
+                    if letter in indexes:
+                        hidden_word += letter + ' '
+                    else:
+                        hidden_word += '_ '
+                        worst += 1
+                tablero = hidden_word
+                table = str.encode(hidden_word)  # encode hidden_word
+                data = b'table'
+                msg_all(data)
+                time.sleep(0.2)
+                msg_all(table)  # Send table
+                print(hidden_word)  # There is the current hidden_word
+                if worst == 0:  # YOU WIN
+                    response = bytes("W", 'ascii')
+                    time.sleep(0.01)
+                    msg_all(response)
+                    break
+                if tries == 6:
+                    response = bytes("L", 'ascii')
+                    time.sleep(0.01)
+                    msg_all(response)
+                    break
+                hidden_word = ''  # reset to clean string
+                index = ''  # Reset to clean index comodin
+                j += 1
+                condition.notifyAll()
+            else:
+                logging.debug('Bloqueado')
+                condition.wait()
 
 def servirPorSiempre(socketTcp, listaconexiones, barrier, lock):
     global num_players,i

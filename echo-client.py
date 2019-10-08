@@ -37,7 +37,6 @@ def send_recive_data(TCPClientSocket):
             data = TCPClientSocket.recv(buffer_size)
             data = data.decode(encoding="utf-8")
             print(".::"+data+"::.")
-
         else:
             letra=input(data)
             letra=letra.lower()
@@ -49,13 +48,6 @@ def send_recive_data(TCPClientSocket):
             print('respuesta: '+ data)
             data=b'respuesta confirmada'            #Answer confirmed
             TCPClientSocket.sendall(data)
-            """
-            data=TCPClientSocket.recv(buffer_size) #recive table
-            data = data.decode(encoding="utf-8")
-            print(".::"+data+"::.")
-            data=b'tablero confirmado'            #Tablero confirmado
-            TCPClientSocket.sendall(data)
-            """
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCPClientSocket:
     addr,port=conexion()
@@ -66,11 +58,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as TCPClientSocket:
         data=b'P2 recived'
         TCPClientSocket.sendall(data)
         time.sleep(0.1)
-        """data = TCPClientSocket.recv(buffer_size)
-        data = data.decode(encoding="utf-8")
-        print('tablero:' + data*2)
-        time.sleep(0.5)"""
-
         send_recive_data(TCPClientSocket) #Llamada de funcion que inicia la comunicacion del juego
     else:                           #Solo entra Player 1
         difficult(TCPClientSocket,data) #Envio y recepcion de mensajes entre esta funcion y welcome de servidor
